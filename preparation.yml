@@ -63,7 +63,7 @@
             firewall:
               - port: 8080/tcp
                 permanent: yes
-                state: enabled 
+                state: enabled
         - name: Prepare configuration file for "{{ inventory_hostname }}"
           vars:
             config_paths:
@@ -74,7 +74,7 @@
               - default_path: '\/path\/to\/keys'
                 new_path: /etc/fdo/keys
               - default_path: 'fdo\.example\.com'
-                new_path: "{{ ansible_facts['fqdn'] }}" 
+                new_path: "{{ ansible_facts['fqdn'] }}"
               - default_path: ' 127\.0\.0\.1'
                 new_path: " {{ ansible_facts['default_ipv4']['address'] }}"
               - default_path: ' 8084'
@@ -117,7 +117,7 @@
             - /etc/fdo/stores/rendezvous_registered
             - /etc/fdo/stores/rendezvous_sessions
         - name: Copy certificates from manufacturing
-          copy: 
+          copy:
             src: "{{ item }}"
             dest: /etc/fdo/keys/
           with_fileglob:
@@ -133,7 +133,7 @@
             firewall:
               - port: 8082/tcp
                 permanent: yes
-                state: enabled 
+                state: enabled
         - name: Remove not necessary lines in /etc/fdo/rendezvous-server.yml
           lineinfile:
             path: /etc/fdo/rendezvous-server.yml
@@ -142,7 +142,7 @@
           loop:
             - "^session_store_driver"
             - "^session_store_config"
-            - "^trusted_device_keys_path" 
+            - "^trusted_device_keys_path"
         - name: Insert block in config file /etc/fdo/rendezvous-server.yml
           blockinfile:
             path: /etc/fdo/rendezvous-server.yml
@@ -150,7 +150,7 @@
             block: |
               session_store_driver:
                 Directory:
-                  path: /etc/fdo/stores/rendezvous_sessions 
+                  path: /etc/fdo/stores/rendezvous_sessions
               max_wait_seconds: ~
         - name: Prepare configuration file for "{{ inventory_hostname }}"
           vars:
@@ -201,7 +201,7 @@
             - "/etc/fdo/stores/owner_vouchers"
             - "/etc/fdo/stores/owner_onboarding_sessions"
         - name: Copy certificates device_ca_cert.pem, owner_key.der and owner_cert.pem from manufacturing
-          copy: 
+          copy:
             src: "{{ item }}"
             dest: /etc/fdo/keys/
           loop:
@@ -219,10 +219,10 @@
             firewall:
               - port: 8081-8083/tcp
                 permanent: yes
-                state: enabled 
+                state: enabled
         - name: Remove not necessary lines
           lineinfile:
-            path: /etc/fdo/owner-onboarding-server.yml 
+            path: /etc/fdo/owner-onboarding-server.yml
             regexp: '{{ item }}'
             state: absent
           loop:
@@ -245,7 +245,7 @@
               - default_path: '\/path\/to\/keys'
                 new_path: /etc/fdo/keys
               - default_path: 'fdo\.example\.com'
-                new_path: "{{ ansible_facts['fqdn'] }}" 
+                new_path: "{{ ansible_facts['fqdn'] }}"
               - default_path: ':8089'
                 new_path: ':8083'
               - default_path: 'report_to_rendezvous_endpoint_enabled: false'
@@ -255,6 +255,16 @@
             regexp:  '(\.*){{ item.default_path }}(\.*)'
             replace: '\1{{ item.new_path | string}}\2'
           loop: "{{ config_paths }}"
+        - name: Insert IP_Address in the /etc/fdo/owner-onboarding-server.yml file
+          lineinfile:
+            path: /etc/fdo/owner-onboarding-server.yml
+            line: "    - ip_address: {{ ansible_facts['default_ipv4']['address'] }}"
+            insertbefore: "dns_name:"
+        - name: Remove blank lines in /etc/fdo/owner-onboarding-server.yml
+          lineinfile :
+            path: /etc/fdo/owner-onboarding-server.yml
+            state: absent
+            regexp: 'ANSIBLE'
         - name: Restart services fdo-owner-onboarding-server, fdo-serviceinfo-api-server
           service:
             name: "{{ item }}"
@@ -313,7 +323,7 @@
             regexp:  "{{ item.source }}"
             replace: "{{ item.destination }}"
           loop: "{{ text_to_replace }}"
-        - name: Insert block in config file /etc/fdo/rendezvous-server.yml
+        - name: Insert block in config file {{ api_config_path_owner }}
           blockinfile:
             path: "{{ api_config_path_owner }}"
             insertbefore: "command: systemctl"
@@ -324,7 +334,7 @@
                 - command: systemd-machine-id-setup
                   args:
                   - ''
-        - name: Remove blank lines in {{ api_config_path_owner }} put in
+        - name: Remove blank lines in {{ api_config_path_owner }}
           lineinfile :
             path: "{{ api_config_path_owner }}"
             state: absent
