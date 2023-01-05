@@ -1,0 +1,11 @@
+- name: Configure firewall for fdo-aio
+  hosts: manufacturingo
+  roles:
+    - redhat.rhel_system_roles.firewall
+vars: 
+  firewall:
+    - service: fdo-aio
+      description: enable ports 8080-8083/tcp 8080-8083/tcp for fdo-aio services
+      port: 8080-8083/tcp
+      permanent: yes
+      state: enabled
