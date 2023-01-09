@@ -1,4 +1,4 @@
-- name: Attach TPM device to the previous vms
+- name: Automate FDO manufacturing, rendezvous and owner deployment
   hosts: management
   become: true
   vars_files:
@@ -14,6 +14,7 @@
 #       subscription-manager remove --all
 #       subscription-manager unregister
 #      ignore_errors: true
+#
     - name: Register to Red Hat portal and auto-subscribe to available content.
       redhat_subscription:
         state: present
@@ -74,11 +75,13 @@
               - default_path: '\/path\/to\/keys'
                 new_path: /etc/fdo/keys
               - default_path: 'fdo\.example\.com'
-                new_path: "{{ ansible_facts['fqdn'] }}"
+                new_path: "{{ rendezvous_dns }}"
               - default_path: ' 127\.0\.0\.1'
-                new_path: " {{ ansible_facts['default_ipv4']['address'] }}"
+                new_path: " {{ rendezvous_ip }}"
               - default_path: ' 8084'
                 new_path: ' 8082'
+              - default_path: ' SECP256R1'
+                new_path: ' SECP384R1'
           replace:
             path: /etc/fdo/manufacturing-server.yml
             regexp:  '(\.*){{ item.default_path }}(\.*)'
@@ -152,6 +155,11 @@
                 Directory:
                   path: /etc/fdo/stores/rendezvous_sessions
               max_wait_seconds: ~
+        - name: Remove blank lines in /etc/fdo/owner-onboarding-server.yml
+          lineinfile :
+            path: /etc/fdo/rendezvous-server.yml
+            state: absent
+            regexp: 'ANSIBLE'
         - name: Prepare configuration file for "{{ inventory_hostname }}"
           vars:
             config_paths:
@@ -161,8 +169,8 @@
                 new_path: /etc/fdo/stores/owner_vouchers
               - default_path: '\/path\/to\/keys'
                 new_path: /etc/fdo/keys
-              - default_path: ' 8084'
-                new_path: ' 8082'
+              - default_path: ' 0.0.0.0:8082'
+                new_path: ' "0.0.0.0:8082"'
           replace:
             path: /etc/fdo/rendezvous-server.yml
             regexp:  '(\.*){{ item.default_path }}(\.*)'
@@ -264,7 +272,10 @@
           lineinfile :
             path: /etc/fdo/owner-onboarding-server.yml
             state: absent
-            regexp: 'ANSIBLE'
+            regexp: "{{ item }}"
+          loop:
+            - "ANSIBLE"
+            - "dns_name:"
         - name: Restart services fdo-owner-onboarding-server, fdo-serviceinfo-api-server
           service:
             name: "{{ item }}"
@@ -352,3 +363,35 @@
           debug:
             var: results.stdout_lines
       when: inventory_hostname == "owner"
+
+- name: Configure image_builder server
+  import_playbook: infra.osbuild.osbuild_setup_server.yml
+  when: inventory_hostname == "owner"
+
+- name: Build image (actually it doesn't work with fdo with customizations)
+  import_playbook: infra.osbuild.osbuild_builder.yml
+  vars:
+    builder_blueprint_name: edge-demo-v1
+    builder_compose_pkgs:
+      - "vim-enhanced"
+      - "git"
+      - "tmux"
+      - "ansible-core"
+    builder_pub_key: ~/.ssh/id_rsa.pub
+    builder_compose_customizations:
+      user:
+        name: "admin"
+        description: "Admin user"
+        password: "redhat"
+        key: "{{ builder_pub_key }}"
+        groups: '["users", "wheel"]'
+#      customizations:
+#        hostname: "newbuild9"
+#        installation_device: "/dev/vda"
+#      fdo:
+#        manufacturing_server_url: "http://192.168.1.216:8080"
+#        diun_pub_key_insecure: "true"
+#      sshkey:
+#       user: "root"
+#        key: "{{ builder_pub_key }}"
+  when: inventory_hostname == "owner"
