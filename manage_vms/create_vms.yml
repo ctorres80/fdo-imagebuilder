@@ -1,0 +1,85 @@
+---
+- name: Create vm clone
+  hosts: localhost
+  connection: local
+  become: true
+  vars_files:
+    - ./vars/hosts.yml
+  tasks:
+    - name: Creating the vms with RAM=4GB cores=2
+      community.general.proxmox_kvm:
+        proxmox_default_behavior: no_defaults
+        api_user: root@pam
+        api_password: redhat
+        api_host: "{{ ansible_hostname }}"
+        name: "{{ vm_prefix }}-{{ item.vmid }}"
+        node: "{{ item.host }}"
+        protection: no
+        bios: "{{ bios }}"
+        pool: "{{ pool_vms }}"
+        cpu: host
+        cores: "{{ cores }}"
+        sockets: "{{ sockets }}"
+        memory: "{{ ram }}"
+        vmid: "{{ item.vmid }}"
+        virtio: '{"virtio0":"rbd:100,format=raw", "virtio1":"rbd:200,format=raw"}'
+        net:
+          net0: 'virtio,bridge=vmbr0,rate=200'
+        state: present
+      loop: "{{ vms }}"
+    - name: Clone VM with source vmid and target newid and raw format
+      community.general.proxmox_kvm:
+        api_user: root@pam
+        api_password: YOUR_PASSWORD
+        api_host: "{{ ansible_hostname }}"
+        clone: "edge-node"
+        name: "{{ item.name }}"
+        node: "{{ ansible_hostname }}"
+        target: "{{ item.host }}"
+        newid: "{{ item.vmid }}"
+        full: false
+        format: unspecified
+        timeout: 300
+        protection: no
+      loop: "{{ mnmnt_vms }}"
+      ignore_errors: True
+    - name: Create dnsmasq MAC addres and IP mapping and clones for management vms
+      shell: |
+        for i in milano roma palermo; do ssh $i cat /etc/pve/nodes/$i/qemu-server/2*.conf; done | egrep "^name:|^net0: virtio=" | sed '$!N;s/\n/ /' | sed -e 's/ net0: virtio=/,/g' -e 's/name: //g' -e 's/,bridge=vmbr0i,rate=200//g' | awk -F "," '{print "dhcp-host="$2","$1",192.168.1."}' | sort -u -t ',' -k 2 > dnsmasq_to_add
+        i=201
+        cat dnsmasq_to_add | while read line; do echo "$line$i";i=$((i+1)); done > dnsmasq_to_add.tmp
+        mv dnsmasq_to_add.tmp dnsmasq_to_add
+        cat dnsmasq_to_add | awk -F "," '{print $3"    "$2".carlos-lab.com    "$2}' > etc.hosts
+      ignore_errors: yes
+    - name: Insert/Update /etc/dnsmasq.conf configuration
+      blockinfile:
+        block: "{{ lookup('file', 'dnsmasq_to_add') }}"
+        path: /etc/dnsmasq.conf
+        insertafter: "EOF"
+        backup: yes
+    - name: Insert/Update /etc/hosts configuration
+      blockinfile:
+        block: "{{ lookup('file', 'etc.hosts') }}"
+        path: /etc/hosts
+        insertafter: "EOF"
+        backup: yes
+    - name: Remove dhcp ip leases files from /var/lib/misc/dnsmasq.leases file
+      file:
+        path: /var/lib/misc/dnsmasq.leases
+        state: absent
+    - name: Restart service dnsmasq
+      service:
+        name: dnsmasq
+        state: restarted
+
+- name: Attach TPM device to the previous vms
+  hosts: nodes
+  become: true
+  vars_files:
+    - ./vars/hosts.yml
+  tasks:
+    - name: Attach TPM device in {{ inventory_hostname }}
+      shell: |
+        qm set {{ item.vmid }} -tpmstate0 rbd:1,version=v2.0
+      loop: "{{ vms }}"
+      when: "{{ inventory_hostname == item.host }}"
