@@ -1,0 +1,28 @@
+---
+- name: Install FDO AIO Server
+  hosts: server-allinone
+  become: true
+  gather_facts: true
+  vars_files:
+    - ./vars/hosts.yml
+  tasks:
+    - name: Remove /etc/machine-id file
+      file:
+        path: /etc/machine-id
+        state: absent
+    - name: Regenerate /etc/machine-id file and unregister the systems
+      shell: |
+        systemd-machine-id-setup
+        subscription-manager remove --all
+      ignore_errors: true
+    # Role installs required packages, starts services &
+    # enables required ports for FDO AIO Server.
+    - name: Register to Red Hat portal and auto-subscribe to available content.
+      redhat_subscription:
+        state: present
+        username: "{{ username }}"
+        password: "{{ password | b64decode }}"
+        auto_attach: true
+      ignore_errors: true
+    - import_role:
+        name: community.fdo.setup_aio_server

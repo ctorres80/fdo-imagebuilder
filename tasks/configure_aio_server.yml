@@ -1,0 +1,13 @@
+---
+- name: Configure FDO AIO Server
+  hosts: server-allinone
+  become: true
+  gather_facts: true
+  vars:
+    - aio_configuration_serviceinfo_api_auth_token: "dnEXugA+KXFpIDs7f0XFhn/hQ5FBcr+9d/MsMDfH7TM=" # to be changed
+    - aio_configuration_serviceinfo_api_admin_token: "XWNzbEwQ6EWF+PWZrqa7d68mQFHG1NtGX9yklCNtMa8=" # to be changed
+  tasks:
+    # Role updates FDO AIO Server config files and restarts the services.
+    # In case ports are changed, it also enables newly configured ports.
+    - import_role:
+        name: community.fdo.configure_aio_server
