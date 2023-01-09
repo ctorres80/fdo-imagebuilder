@@ -121,10 +121,8 @@
             - /etc/fdo/stores/rendezvous_sessions
         - name: Copy certificates from manufacturing
           copy:
-            src: "{{ item }}"
+            src: "/etc/fdo/keys/manufacturer_cert.pem"
             dest: /etc/fdo/keys/
-          with_fileglob:
-            - /etc/fdo/keys/*
         - name: Copy file /usr/share/doc/fdo/rendezvous-server.yml to /etc/fdo/rendezvous-server.yml
           copy:
             src: /usr/share/doc/fdo/rendezvous-server.yml
