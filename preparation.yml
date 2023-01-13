@@ -332,17 +332,6 @@
             regexp:  "{{ item.source }}"
             replace: "{{ item.destination }}"
           loop: "{{ text_to_replace }}"
-        - name: Insert block in config file {{ api_config_path_owner }}
-          blockinfile:
-            path: "{{ api_config_path_owner }}"
-            insertbefore: "command: systemctl"
-            block: |2
-                - command: rm
-                  args:
-                  - /etc/machine-id
-                - command: systemd-machine-id-setup
-                  args:
-                  - ''
         - name: Remove blank lines in {{ api_config_path_owner }}
           lineinfile :
             path: "{{ api_config_path_owner }}"
@@ -388,3 +377,4 @@
         user: "root"
         key: "{{ builder_pub_key }}"
   when: inventory_hostname == "owner"
+  
