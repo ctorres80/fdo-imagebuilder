@@ -358,6 +358,11 @@
 - name: Build image (actually it doesn't work with fdo with customizations)
   import_playbook: infra.osbuild.osbuild_builder.yml
   vars:
+    manufacturing_server: "192.168.1.216"
+    manufacturing_server_url: "http://192.168.1.216:8080"
+    installation_device: "/dev/vda4"
+    builder_blueprint_name: "edge-demo-v11"
+    builder_blueprint_name_fdo: "edge-demo-v11-fdo"
     builder_compose_pkgs:
       - "vim-enhanced"
       - "git"
