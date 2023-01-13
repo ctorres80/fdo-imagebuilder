@@ -4,17 +4,17 @@
   vars_files:
     - ./vars/hosts.yml
   tasks:
-#   - name: Remove /etc/machine-id file
-#     file:
-#       path: /etc/machine-id
-#       state: absent
-#   - name: Regenerate /etc/machine-id file and unregister the systems
-#     shell: |
-#       systemd-machine-id-setup
-#       subscription-manager remove --all
-#       subscription-manager unregister
-#      ignore_errors: true
-#
+    - name: Remove /etc/machine-id file
+      file:
+        path: /etc/machine-id
+        state: absent
+    - name: Regenerate /etc/machine-id file and unregister the systems
+      shell: |
+        systemd-machine-id-setup
+        subscription-manager remove --all
+        subscription-manager unregister
+      ignore_errors: true
+
     - name: Register to Red Hat portal and auto-subscribe to available content.
       redhat_subscription:
         state: present
@@ -369,12 +369,13 @@
 - name: Build image (actually it doesn't work with fdo with customizations)
   import_playbook: infra.osbuild.osbuild_builder.yml
   vars:
-    builder_blueprint_name: edge-demo-v1
     builder_compose_pkgs:
       - "vim-enhanced"
       - "git"
       - "tmux"
       - "ansible-core"
+      - "cockpit"
+      - "insights-client"
     builder_pub_key: ~/.ssh/id_rsa.pub
     builder_compose_customizations:
       user:
@@ -383,13 +384,7 @@
         password: "redhat"
         key: "{{ builder_pub_key }}"
         groups: '["users", "wheel"]'
-#      customizations:
-#        hostname: "newbuild9"
-#        installation_device: "/dev/vda"
-#      fdo:
-#        manufacturing_server_url: "http://192.168.1.216:8080"
-#        diun_pub_key_insecure: "true"
-#      sshkey:
-#       user: "root"
-#        key: "{{ builder_pub_key }}"
+      sshkey:
+        user: "root"
+        key: "{{ builder_pub_key }}"
   when: inventory_hostname == "owner"
