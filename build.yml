@@ -1,0 +1,35 @@
+- name: Automate OStree image builder
+  hosts: management
+  become: true
+  vars_files:
+    - ./vars/hosts.yml
+  tasks:
+    - name: Deploy rendezvous server
+      block:
+        - name: Create blueprint file in /tmp
+          template  :
+            src: "{{ item.bp_template }}"
+            dest: "{{ item.bp_file }}"
+          loop: "{{ toml_files }}"
+
+        - name: Create blueprint from shell command
+          shell: |
+            composer-cli blueprints push "{{ item.bp_file }}"
+          register: _create_instances
+          async: 3600  # Maximum runtime in seconds. Adjust as needed.
+          poll: 0  # Fire and continue (never poll)
+          loop: "{{ toml_files}}"
+
+        - name: Waiting for blueprint to be ready
+          async_status:
+            jid: "{{ item.ansible_job_id }}"
+          register: _jobs
+          until: _jobs.finished
+          delay: 10  # Check every 5 seconds. Adjust as you like.
+          retries: 360  # Retry up to 10 times. Adjust as needed.
+          loop: "{{ _create_instances.results }}"
+        - name: Print composer-cli blueprints push
+          debug:
+            msg: "{{ item.stdout_lines }}"
+          loop: "{{ _jobs.results }}"
+      when: inventory_hostname == "owner"

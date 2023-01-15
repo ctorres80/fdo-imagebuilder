@@ -1,0 +1,49 @@
+name = "edge-commit-demo-v1"
+description = "edge-commit blueprint"
+version = "0.0.1"
+modules = [ ]
+groups = [ ]
+
+[[packages]]
+name = "tree"
+version = "*"
+
+[[packages]]
+name = "git"
+version = "*"
+
+[[packages]]
+name = "ansible-core"
+version = "*"
+
+[[packages]]
+name = "insights-client"
+version = "*"
+
+[[packages]]
+name = "cockpit"
+version = "*"
+
+[customizations]
+hostname = "edge-node"
+
+[customizations.services]
+enabled = ["cockpit","insights-client"]
+
+[customizations.firewall]
+ports = ["9090:tcp"]
+
+
+[[customizations.sshkey]]
+user = "root"
+key = "{{ ssh_key }}"
+
+
+[[customizations.user]]
+name = "admin"
+description = "Admin user"
+password = '{{ password }}'
+key = "{{ ssh_key }}"
+home = "/home/admin/"
+shell = "/usr/bin/bash"
+groups = ["users", "wheel"]

@@ -1,0 +1,12 @@
+name = "edge-commit-demo-fdo-v1"
+description = "edge-commit-fdo Blueprint for FDO"
+version = "0.0.1"
+packages = []
+modules = []
+groups = []
+distro = ""
+[customizations]
+installation_device = "{{ disk_device }}"
+[customizations.fdo]
+manufacturing_server_url = "{{ manufacturing_url }}"
+diun_pub_key_insecure = "true"
