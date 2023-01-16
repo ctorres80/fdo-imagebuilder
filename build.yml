@@ -4,7 +4,7 @@
   vars_files:
     - ./vars/hosts.yml
   tasks:
-    - name: Deploy rendezvous server
+    - name: Prepare blueprint templates and compose images
       block:
         - name: Enable Cockpit/Composer/Firewalld/Apache
           ansible.builtin.systemd:
@@ -67,9 +67,9 @@
                 state: directory
 
         - name: composer-cli compose image
-          ansible.builtin.command: |
+          ansible.builtin.command: 'composer-cli compose image {{ composeID }}'
+          args:
             chdir: "/tmp/{{ edge_commit_bp }}"
-            cmd: 'composer-cli compose image {{ composeID }}'
       when: inventory_hostname == "owner"
 
 #        - name: Untar artifact
