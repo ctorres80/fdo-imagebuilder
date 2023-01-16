@@ -197,6 +197,10 @@
               - vim
               - tar
               - podman
+              - osbuild-composer
+              - composer-cli
+              - bash-completion
+              - cockpit-composer
             state: latest
         - name: Create a directores etc/fdo/keys /etc/fdo/stores/owner_vouchers /etc/fdo/stores/rendezvous_sessions if they do not exist
           file:
@@ -224,8 +228,11 @@
             name: redhat.rhel_system_roles.firewall
           vars:
             firewall:
-              - port: 8081-8083/tcp
-                permanent: yes
+              - port: 8080-8083/tcp
+                permanent: true
+                state: enabled
+              - service: cockpit
+                permanent: true
                 state: enabled
         - name: Remove not necessary lines
           lineinfile:
@@ -283,6 +290,8 @@
           loop:
             - fdo-owner-onboarding-server
             - fdo-serviceinfo-api-server
+            - osbuild-composer
+            - cockpit
         - name: Check ss -tlnp for fdo-owner-onboarding-server and fdo-serviceinfo-api-server
           shell: |
             ss -tlnp

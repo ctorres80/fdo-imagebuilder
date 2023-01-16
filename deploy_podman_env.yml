@@ -1,0 +1,64 @@
+- name: Create RHEL ISO image ostree
+  hosts: management
+  become: true
+  vars:
+    - composeID: "2cc6f0e2-a9dd-46c4-af15-57bdedad1e96"
+    - edge_commit_bp: "edge-commit-demo-v1"
+    - composeID_fdo: "2cc6f0e2-a9dd-46c4-af15-57bdedad1e96"
+    - edge_commit_bp_fdo: "edge-commit-demo-fdo-v1"
+  vars_files:
+    - ./vars/hosts.yml
+  tasks:
+    - name: Create config files for /tmp/nginx.conf /tmp/Dockerfile
+      block:
+        - name: Create config files for /tmp/nginx.conf /tmp/Dockerfile
+          template  :
+            src: "{{ item.conf_template }}"
+            dest: "{{ item.conf_file }}"
+          loop: "{{ docker_files }}"
+
+        - name: Build a container image
+          ansible.builtin.command: 'podman build -t {{ edge_commit_bp }}:{{ composeID }} --build-arg commit={{ edge_commit_bp }}/{{ composeID }}-commit.tar .'
+          args:
+            chdir: "/tmp/"
+          register: _create_instances
+          async: 3600  # Maximum runtime in seconds. Adjust as needed.
+          poll: 0  # Fire and continue (never poll)
+
+        - name: Waiting for compose podman build
+          async_status:
+            jid: "{{  _create_instances.ansible_job_id }}"
+          register: _jobs
+          until: _jobs.finished
+          delay: 10  # Check every 10 seconds. Adjust as you like.
+          retries: 360  # Retry up to 10 times. Adjust as needed.
+
+      when: inventory_hostname == "owner"
+#
+##        - name: Untar artifact
+##          ansible.builtin.unarchive:
+##            src: "/tmp/{{ edge_commit_bp }}/{{ composeID }}-commit.tar"
+##            dest: /tmp/{{ edge_commit_bp }}
+##            remote_src: true
+##
+##        - name: Get checksum from artifact
+##          ansible.builtin.command:
+##            cmd: "/usr/bin/ostree --repo=/tmp/{{ edge_commit_bp }}/repo rev-parse rhel/{{ base_release }}/{{ base_arch }}/edge"
+##          register: checksum_output
+##          changed_when: false
+##
+##        - name: Pull commit from artifact
+##          ansible.builtin.command:
+##            cmd: "/usr/bin/ostree --repo=/var/www/html/{{ edge_commit_bp }}/repo pull-local /tmp/{{ edge_commit_bp }}/repo {{ checksum_output['stdout'] }}"
+##          changed_when: true
+#
+##        - name: Commit changes to repository
+##          ansible.builtin.command:
+##            cmd: "/usr/bin/ostree --repo=/var/www/html/{{ edge_commit_bp }}/repo commit -b rhel/{{ base_release }}/{{ base_arch }}/edge -s 'Release {{ blueprint_output['current_version'] }}' --add-metadata-string=version={{ blueprint_output['current_version'] }} --tree=ref={{ checksum_output['stdout'] }}"
+##          changed_when: true
+##
+##        - name: Remove tar file
+##          ansible.builtin.file:
+##            path: "/tmp/{{ edge_commit_bp }}/{{ edge_commit_bp }}-{{ blueprint_output['current_version'] }}.{{ compose_start_out['result']['output_type'] }}"
+##            state: absent
+##
