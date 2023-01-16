@@ -22,15 +22,17 @@
         sockets: "{{ sockets }}"
         memory: "{{ ram }}"
         vmid: "{{ item.vmid }}"
-        virtio: '{"virtio0":"rbd:100,format=raw", "virtio1":"rbd:200,format=raw"}'
+        virtio: '{"virtio0":"rbd:100,format=raw"}'
+        ide: '{"ide0":"cephfs:iso/rhel-for-edge-fdo.iso,media=cdrom"}'
         net:
           net0: 'virtio,bridge=vmbr0,rate=200'
+        boot: "order=scsi0;ide2"
         state: present
       loop: "{{ vms }}"
     - name: Clone VM with source vmid and target newid and raw format
       community.general.proxmox_kvm:
         api_user: root@pam
-        api_password: YOUR_PASSWORD
+        api_password: redhat
         api_host: "{{ ansible_hostname }}"
         clone: "edge-node"
         name: "{{ item.name }}"
