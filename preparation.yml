@@ -189,13 +189,14 @@
       when: inventory_hostname == "rendezvous"
     - name: Deploy owner server packages
       block:
-        - name: Install fdo-rendezvous-server and utilities
+        - name: Install fdo-owner-server and utilities
           dnf:
             name:
               - fdo-owner-cli
               - fdo-owner-onboarding-server
               - vim
               - tar
+              - podman
             state: latest
         - name: Create a directores etc/fdo/keys /etc/fdo/stores/owner_vouchers /etc/fdo/stores/rendezvous_sessions if they do not exist
           file:
@@ -354,4 +355,3 @@
 - name: Configure image_builder server
   import_playbook: infra.osbuild.osbuild_setup_server.yml
   when: inventory_hostname == "owner"
-  
