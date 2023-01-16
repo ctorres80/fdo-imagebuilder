@@ -361,6 +361,3 @@
             var: results.stdout_lines
       when: inventory_hostname == "owner"
 
-- name: Configure image_builder server
-  import_playbook: infra.osbuild.osbuild_setup_server.yml
-  when: inventory_hostname == "owner"
