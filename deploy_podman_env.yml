@@ -25,13 +25,19 @@
           async: 3600  # Maximum runtime in seconds. Adjust as needed.
           poll: 0  # Fire and continue (never poll)
 
-        - name: Waiting for compose podman build
+        - name: Waiting for podman build
           async_status:
             jid: "{{  _create_instances.ansible_job_id }}"
           register: _jobs
           until: _jobs.finished
           delay: 10  # Check every 10 seconds. Adjust as you like.
           retries: 360  # Retry up to 10 times. Adjust as needed.
+
+        - name: Tag container image
+          ansible.builtin.command: 'podman tag {{ edge_commit_bp }}:{{ composeID }} {{ edge_commit_bp }}:latest'
+
+        - name: Run the container
+          ansible.builtin.command: 'podman run --name {{ edge_commit_bp }}-latest -d -p  {{ repo_http_extport }}:{{ repo_http_port }} {{ edge_commit_bp }}:{{ composeID }}'
 
       when: inventory_hostname == "owner"
 #

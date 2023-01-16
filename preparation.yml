@@ -234,6 +234,9 @@
               - service: cockpit
                 permanent: true
                 state: enabled
+              - port: 8090/tcp
+                permanent: true
+                state: enabled
         - name: Remove not necessary lines
           lineinfile:
             path: /etc/fdo/owner-onboarding-server.yml
@@ -360,4 +363,3 @@
           debug:
             var: results.stdout_lines
       when: inventory_hostname == "owner"
-
