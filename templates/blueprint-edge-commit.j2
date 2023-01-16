@@ -1,4 +1,4 @@
-name = "edge-commit-demo-v1"
+name = "{{ edge_commit_bp }}"
 description = "edge-commit blueprint"
 version = "0.0.1"
 modules = [ ]
@@ -23,15 +23,6 @@ version = "*"
 [[packages]]
 name = "cockpit"
 version = "*"
-
-[customizations]
-hostname = "edge-node"
-
-[customizations.services]
-enabled = ["cockpit","insights-client"]
-
-[customizations.firewall]
-ports = ["9090:tcp"]
 
 
 [[customizations.sshkey]]
