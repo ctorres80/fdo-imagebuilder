@@ -1,0 +1,18 @@
+- name: Copy vouchers in the right directory for device onboarding in rendezvous and owner
+  hosts: all
+  become: true
+  tasks:
+    - name: Distribute the Vouchers in the rendezvous server
+      copy:
+        src: "{{ item }}"
+        dest: "/etc/fdo/stores/rendezvous_registered/"
+      with_fileglob:
+        - "/etc/fdo/stores/owner_vouchers/*"
+      when: inventory_hostname == "rendezvous"
+    - name: Distribute the Vouchers in the owner server
+      copy:
+        src: "{{ item }}"
+        dest: "/etc/fdo/stores/owner_vouchers/"
+      with_fileglob:
+        - "/etc/fdo/stores/owner_vouchers/*"
+      when: inventory_hostname == "owner"
