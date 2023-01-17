@@ -1,0 +1,25 @@
+- name: Start vms from qm start
+  hosts: all
+  become: true
+  tasks:
+    - name: qm start vm in {{ inventory_hostname }}
+      shell: |
+        qm start {{ item }}
+      with_sequence: start=201 end=205
+      when: inventory_hostname == "milano"
+
+    - name: qm start vm in {{ inventory_hostname }}
+      shell: |
+        qm start {{ item }}
+      with_sequence: start=206 end=210
+      when: inventory_hostname == "roma"
+
+    - name: qm start vm in {{ inventory_hostname }}
+      shell: |
+        qm start {{ item }}
+      with_sequence: start=211 end=215
+      when: inventory_hostname == "palermo"
+
+    - name: Pause for 5 minutes to copy the image in the local disk on the device
+      ansible.builtin.pause:
+        minutes: 5
