@@ -305,9 +305,9 @@
         - name: Download /etc/fdo/serviceinfo-api-server.yml
           vars:
             files_to_download:
-              - source: 'https://raw.githubusercontent.com/luisarizmendi/tutorial-secure-onboarding/master/documentation/modules/ROOT/examples/serviceinfo_api_server.yml'
+              - source: 'https://raw.githubusercontent.com/ctorres80/fdo-imagebuilder/main/templates/serviceinfo-api-server.yml'
                 destination: "{{ api_config_path_owner }}"
-              - source: 'https://raw.githubusercontent.com/luisarizmendi/tutorial-secure-onboarding/master/documentation/modules/ROOT/examples/fdo-configs.tar.gz'
+              - source: 'https://github.com/ctorres80/fdo-imagebuilder/raw/main/templates/fdo-configs.tar.gz'
                 destination: /etc
           get_url:
             url: "{{ item.source }}"
