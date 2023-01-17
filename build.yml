@@ -1,5 +1,5 @@
 - name: Automate OStree image builder
-  hosts: management
+  hosts: all
   become: true
   vars_files:
     - ./vars/hosts.yml
@@ -67,18 +67,18 @@
                 mode: 0755
                 state: directory
 
-        - name: composer-cli compose image
+        - name: composer-cli compose image getting tar file
           ansible.builtin.command: 'composer-cli compose image {{ composeID }}'
           args:
             chdir: "/tmp/{{ edge_commit_bp }}"
-            
+
         - name: Create config files for /tmp/nginx.conf /tmp/Dockerfile
           template  :
             src: "{{ item.conf_template }}"
             dest: "{{ item.conf_file }}"
           loop: "{{ docker_files }}"
 
-        - name: Build a container image
+        - name: Build a container image with podman buil from previous tar file
           ansible.builtin.command: 'podman build -t {{ edge_commit_bp }}:{{ composeID }} --build-arg commit={{ edge_commit_bp }}/{{ composeID }}-commit.tar .'
           args:
             chdir: "/tmp/"
@@ -94,7 +94,7 @@
           delay: 10  # Check every 10 seconds. Adjust as you like.
           retries: 360  # Retry up to 10 times. Adjust as needed.
 
-        - name: Tag container image
+        - name: Tagging container image
           ansible.builtin.command: 'podman tag {{ edge_commit_bp }}:{{ composeID }} {{ edge_commit_bp }}:latest'
 
         - name: Run the container
@@ -130,8 +130,16 @@
           delay: 30  # Check every 30 seconds. Adjust as you like.
           retries: 360  # Retry up to 10 times. Adjust as needed.
 
-        - name: Build a container image
+        - name: Build a container iso image
           ansible.builtin.command: 'composer-cli compose image {{ composeID }}'
           args:
             chdir: "/tmp/"
+
       when: inventory_hostname == "owner"
+
+    - name: Transfer iso file from owner to hypervisor
+      synchronize:
+        src: "/tmp/{{ composeID }}-simplified-installer.iso"
+        dest: "/mnt/pve/cephfs/template/iso/rhel-for-edge-fdo.iso"
+      delegate_to: owner
+      when: inventory_hostname == "milano"

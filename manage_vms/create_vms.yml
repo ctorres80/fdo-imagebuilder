@@ -26,7 +26,7 @@
         ide: '{"ide0":"cephfs:iso/rhel-for-edge-fdo.iso,media=cdrom"}'
         net:
           net0: 'virtio,bridge=vmbr0,rate=200'
-        boot: "order=scsi0;ide2"
+        boot: "order=virtio0;ide0"
         state: present
       loop: "{{ vms }}"
     - name: Clone VM with source vmid and target newid and raw format
@@ -85,3 +85,4 @@
         qm set {{ item.vmid }} -tpmstate0 rbd:1,version=v2.0
       loop: "{{ vms }}"
       when: "{{ inventory_hostname == item.host }}"
+      
