@@ -7,35 +7,35 @@ service_info:
   files:
   - path: /etc/greenboot/check/required.d/01_check_demo_file.sh
     permissions: 644
-    source_path: /etc/fdo-configs/device0/etc/greenboot/check/required.d/01_check_demo_file.sh
+    source_path: <PATH FILES>/device0/etc/greenboot/check/required.d/01_check_demo_file.sh
 
   - path: /etc/systemd/system/applyupdate.service
     permissions: 644
-    source_path: /etc/fdo-configs/device0/etc/systemd/system/applyupdate.service
+    source_path: <PATH FILES>/device0/etc/systemd/system/applyupdate.service
 
   - path:  /etc/systemd/system/applyupdate.timer
     permissions: 644
-    source_path: /etc/fdo-configs/device0/etc/systemd/system/applyupdate.timer
+    source_path: <PATH FILES>/device0/etc/systemd/system/applyupdate.timer
 
   - path: /etc/rpm-ostreed.conf
     permissions: 644
-    source_path: /etc/fdo-configs/device0/etc/rpm-ostreed.conf
+    source_path: <PATH FILES>/device0/etc/rpm-ostreed.conf
 
   - path: /var/home/admin/change-hostname.sh
     permissions: 644
-    source_path: /etc/fdo-configs/device0/var/home/admin/change-hostname.sh
+    source_path: <PATH FILES>/device0/var/home/admin/change-hostname.sh
 
   - path: /var/home/admin/register-system.sh
     permissions: 744
-    source_path: /etc/fdo-configs/device0/var/home/admin/register-system.sh
+    source_path: <PATH FILES>/device0/var/home/admin/register-system.sh
 
 #  - path: /var/lib/pcp/config/pmlogger/config.ros
 #    permissions: 644
-#    source_path: /etc/fdo-configs/device0/var/lib/pcp/config/pmlogger/config.ros
+#    source_path: <PATH FILES>/device0/var/lib/pcp/config/pmlogger/config.ros
 
 #  - path: /etc/pcp/pmlogger/control.d/local
 #    permissions: 644
-#    source_path: /etc/fdo-configs/device0/etc/pcp/pmlogger/control.d/local
+#    source_path: <PATH FILES>/device0/etc/pcp/pmlogger/control.d/local
 
   commands:
   - command: systemctl
