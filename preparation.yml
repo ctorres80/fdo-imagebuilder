@@ -199,9 +199,17 @@
               - podman
               - osbuild-composer
               - composer-cli
-              - bash-completion
               - cockpit-composer
+              - bash-completion
             state: latest
+        - name: Enable Cockpit/Composer/Firewalld/Apache
+          ansible.builtin.systemd:
+            state: started
+            enabled: true
+            name: "{{ item }}"
+          loop:
+            - osbuild-composer.socket
+            - cockpit.socket
         - name: Create a directores etc/fdo/keys /etc/fdo/stores/owner_vouchers /etc/fdo/stores/rendezvous_sessions if they do not exist
           file:
             path: "{{ item }}"
@@ -285,20 +293,6 @@
           loop:
             - "ANSIBLE"
             - "dns_name:"
-        - name: Restart services fdo-owner-onboarding-server, fdo-serviceinfo-api-server
-          service:
-            name: "{{ item }}"
-            enabled: yes
-            state: restarted
-          loop:
-            - fdo-owner-onboarding-server
-            - fdo-serviceinfo-api-server
-            - osbuild-composer
-            - cockpit
-        - name: Check ss -tlnp for fdo-owner-onboarding-server and fdo-serviceinfo-api-server
-          shell: |
-            ss -tlnp
-          register: results
         - name: Display fdo-owner-onboarding-server and fdo-serviceinfo-api-server services
           debug:
             var: results.stdout_lines
@@ -350,11 +344,14 @@
             path: "{{ api_config_path_owner }}"
             state: absent
             regexp: 'ANSIBLE'
-        - name: Restart services fdo-serviceinfo-api-server
+        - name: Restart services fdo-owner-onboarding-server, fdo-serviceinfo-api-server
           service:
-            name: fdo-serviceinfo-api-server
+            name: "{{ item }}"
             enabled: yes
             state: restarted
+          loop:
+            - fdo-owner-onboarding-server
+            - fdo-serviceinfo-api-server
         - name: Check ss -tlnp for fdo-serviceinfo-api-server
           shell: |
             ss -tlnp
@@ -362,11 +359,6 @@
         - name: Display fdo-serviceinfo-api-server
           debug:
             var: results.stdout_lines
-        - name: Enable Cockpit/Composer/Firewalld/Apache
-          ansible.builtin.systemd:
-            state: started
-            enabled: true
-            name: cockpit.socket
         - name: Create blueprint file in /tmp
           template  :
             src: "{{ item.bp_template }}"
@@ -476,3 +468,4 @@
           args:
             chdir: "/tmp/"
       when: inventory_hostname == "owner"
+      
