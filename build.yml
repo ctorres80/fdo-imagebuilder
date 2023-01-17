@@ -134,12 +134,8 @@
           ansible.builtin.command: 'composer-cli compose image {{ composeID }}'
           args:
             chdir: "/tmp/"
-
+        - name: scp iso image to hypervisor shared storage
+          ansible.builtin.command: 'scp {{ composeID }}-simplified-installer.iso root@milano:/mnt/pve/cephfs/template/iso/rhel-for-edge-fdo.iso'
+          args:
+            chdir: "/tmp/"
       when: inventory_hostname == "owner"
-
-    - name: Transfer iso file from owner to hypervisor
-      synchronize:
-        src: "/tmp/{{ composeID }}-simplified-installer.iso"
-        dest: "/mnt/pve/cephfs/template/iso/rhel-for-edge-fdo.iso"
-      delegate_to: owner
-      when: inventory_hostname == "milano"
