@@ -471,7 +471,7 @@
           ansible.builtin.command: 'composer-cli compose image {{ composeID }}'
           args:
             chdir: "/tmp/"
-        - name: scp iso image to hypervisor shared storage
+        - name: scp iso image in the hypervisor shared storage
           ansible.builtin.command: 'scp {{ composeID }}-simplified-installer.iso root@milano:/mnt/pve/cephfs/template/iso/rhel-for-edge-fdo.iso'
           args:
             chdir: "/tmp/"
