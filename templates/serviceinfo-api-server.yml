@@ -55,9 +55,9 @@ service_info:
     - --now
     - rpm-ostreed-automatic.timer
     - applyupdate.timer
+    - cockpit.socket
 #    - pmcd
 #    - pmlogger
-    - cockpit.socket
   - command: bash
     args:
     - /var/home/admin/register-system.sh
