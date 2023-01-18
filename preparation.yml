@@ -11,8 +11,8 @@
     - name: Regenerate /etc/machine-id file and unregister the systems
       shell: |
         systemd-machine-id-setup
-        subscription-manager remove --all
-        subscription-manager unregister
+#      subscription-manager remove --all
+#        subscription-manager unregister
       ignore_errors: true
 
     - name: Register to Red Hat portal and auto-subscribe to available content.
@@ -468,4 +468,3 @@
           args:
             chdir: "/tmp/"
       when: inventory_hostname == "owner"
-      
