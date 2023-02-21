@@ -25,14 +25,23 @@ name = "insights-client"
 version = "*"
 
 [[packages]]
-name = "cockpit"
+name = "cockpit-podman"
 version = "*"
 
+[[packages]]
+name = "cockpit-pcp"
+version = "*"
+
+[[packages]]
+name = "redis"
+version = "*"
 
 [[customizations.sshkey]]
 user = "root"
 key = "{{ ssh_key }}"
 
+[customizations.firewall.services]
+enabled = ["pmproxy"]
 
 [[customizations.user]]
 name = "admin"

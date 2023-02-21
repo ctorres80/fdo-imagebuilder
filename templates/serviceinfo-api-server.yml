@@ -55,7 +55,8 @@ service_info:
     - --now
     - rpm-ostreed-automatic.timer
     - applyupdate.timer
-    - cockpit.socket
+    - pmlogger.service
+    - pmproxy.service
 #    - pmcd
 #    - pmlogger
   - command: bash
