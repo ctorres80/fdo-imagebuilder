@@ -5,27 +5,6 @@
     - name: qm stop vm in {{ inventory_hostname }}
       shell: |
         qm stop {{ item }}
-      with_sequence: start=201 end=205
-      when: inventory_hostname == "milano"
-
-    - name: qm stop vm in {{ inventory_hostname }}
-      shell: |
-        qm stop {{ item }}
-      with_sequence: start=206 end=210
-      when: inventory_hostname == "roma"
-
-    - name: qm stop vm in {{ inventory_hostname }}
-      shell: |
-        qm stop {{ item }}
-      with_sequence: start=211 end=215
-      when: inventory_hostname == "palermo"
-- name: Stop vms from qm stop
-  hosts: hypervisor
-  become: true
-  tasks:
-    - name: qm stop vm in {{ inventory_hostname }}
-      shell: |
-        qm stop {{ item }}
       with_sequence: start=201 end=210
       when: inventory_hostname == "milano"
 
@@ -40,4 +19,3 @@
         qm stop {{ item }}
       with_sequence: start=221 end=230
       when: inventory_hostname == "palermo"
-      

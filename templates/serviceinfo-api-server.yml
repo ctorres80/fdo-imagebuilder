@@ -57,16 +57,16 @@ service_info:
     - applyupdate.timer
     - pmlogger.service
     - pmcd.service
+    - cockpit.socket
   - command: firewall-cmd
     args:
     - --permanent
     - --zone=public
+    - --add-service=cockpit
     - --add-service=pmcd
   - command: firewall-cmd
     args:
     - --reload
-#    - pmcd
-#    - pmlogger
   - command: bash
     args:
     - /var/home/admin/register-system.sh
