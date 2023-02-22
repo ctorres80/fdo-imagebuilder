@@ -56,7 +56,7 @@ service_info:
     - rpm-ostreed-automatic.timer
     - applyupdate.timer
     - pmlogger.service
-    - pmproxy.service
+    - pmcd.service
   - command: firewall-cmd
     args:
     - --permanent
