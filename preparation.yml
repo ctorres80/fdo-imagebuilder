@@ -201,6 +201,11 @@
               - composer-cli
               - cockpit-composer
               - bash-completion
+              - cockpit-pcp
+              - redis
+              - cockpit-podman
+              - grafana
+              - grafana-pcp
             state: latest
         - name: Enable Cockpit/Composer/Firewalld/Apache
           ansible.builtin.systemd:
@@ -210,6 +215,8 @@
           loop:
             - osbuild-composer.socket
             - cockpit.socket
+            - pmlogger.service
+            - pmproxy.service
         - name: Create a directores etc/fdo/keys /etc/fdo/stores/owner_vouchers /etc/fdo/stores/rendezvous_sessions if they do not exist
           file:
             path: "{{ item }}"
@@ -240,6 +247,9 @@
                 permanent: true
                 state: enabled
               - service: cockpit
+                permanent: true
+                state: enabled
+              - service: pmproxy
                 permanent: true
                 state: enabled
               - port: 8090/tcp
