@@ -58,12 +58,14 @@ service_info:
     - pmlogger.service
     - pmcd.service
     - cockpit.socket
+    - pmproxy.service
   - command: firewall-cmd
     args:
     - --permanent
     - --zone=public
     - --add-service=cockpit
     - --add-service=pmcd
+    - --add-service=pmcdproxy
   - command: firewall-cmd
     args:
     - --reload
