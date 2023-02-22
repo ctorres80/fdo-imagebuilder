@@ -57,6 +57,14 @@ service_info:
     - applyupdate.timer
     - pmlogger.service
     - pmproxy.service
+  - command: firewall-cmd
+    args:
+    - --permanent
+    - --zone=public
+    - --add-service=pmcd
+  - command: firewall-cmd
+    args:
+    - --reload
 #    - pmcd
 #    - pmlogger
   - command: bash

@@ -207,6 +207,15 @@
               - grafana
               - grafana-pcp
             state: latest
+        - name: Restart services fdo-owner-onboarding-server, fdo-serviceinfo-api-server
+          service:
+            name: "{{ item }}"
+            enabled: yes
+            state: restarted
+          loop:
+            - pmlogger.service
+            - pmproxy.service
+            - grafana-server
         - name: Enable Cockpit/Composer/Firewalld/Apache
           ansible.builtin.systemd:
             state: started
@@ -215,8 +224,6 @@
           loop:
             - osbuild-composer.socket
             - cockpit.socket
-            - pmlogger.service
-            - pmproxy.service
         - name: Create a directores etc/fdo/keys /etc/fdo/stores/owner_vouchers /etc/fdo/stores/rendezvous_sessions if they do not exist
           file:
             path: "{{ item }}"
@@ -247,6 +254,9 @@
                 permanent: true
                 state: enabled
               - service: cockpit
+                permanent: true
+                state: enabled
+              - service: grafana
                 permanent: true
                 state: enabled
               - service: pmproxy

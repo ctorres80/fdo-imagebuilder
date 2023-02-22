@@ -1,8 +1,9 @@
-name = "{{ edge_commit_bp }}"
+name = "edge-commit-demo-v1"
 description = "edge-commit blueprint"
 version = "0.0.1"
-modules = [ ]
-groups = [ ]
+modules = []
+groups = []
+distro = ""
 
 [[packages]]
 name = "tree"
@@ -36,18 +37,17 @@ version = "*"
 name = "redis"
 version = "*"
 
+[customizations]
+
 [[customizations.sshkey]]
 user = "root"
-key = "{{ ssh_key }}"
-
-[customizations.firewall.services]
-enabled = ["pmproxy"]
+key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDS/2i2dSaDtLsE3GMVWoPoG2W1Z3/20IboirqVb9XWyvmyU7ESW01rRlaBx9jXvpmhoLYeFQrNGMfCvkUoXpMArE+CkA1ZZxVkiEe+tdoRYti5F1+s+j5Z/AfaACQU3sKr1z3sg3ZpJNUCBFTfCy7LQubV++wIKsWaDUV0KdeXIPCRF9gUKtmvWgg1Z154cNt5KqO0U4RpSu/UvopROOmL9K1z98yS+ix+n5jiaqsL2cu+SmwvgyDVw7u2d2qQdG2QECH1OHM8RbKUXCJNgZBZc7w7YnWWfEseqE/5YES/ACqRSPplG85uJLrY+mwpYFp2vtb70HHxq0Kg9MUyDnrJ karlost@wlan-180-131.mxp.redhat.com"
 
 [[customizations.user]]
 name = "admin"
 description = "Admin user"
-password = 'redhat'
-key = "{{ ssh_key }}"
+password = "$6$R1UqPt2qW/HVaZav$HaAaXq76STAv/FIX3VdfA3Hv238JmHGCuA3Ml9Xm5Th67P/bZf8tXNARVCWrafDsqh3XNrADwTLgCcvyuKWV71"
+key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDS/2i2dSaDtLsE3GMVWoPoG2W1Z3/20IboirqVb9XWyvmyU7ESW01rRlaBx9jXvpmhoLYeFQrNGMfCvkUoXpMArE+CkA1ZZxVkiEe+tdoRYti5F1+s+j5Z/AfaACQU3sKr1z3sg3ZpJNUCBFTfCy7LQubV++wIKsWaDUV0KdeXIPCRF9gUKtmvWgg1Z154cNt5KqO0U4RpSu/UvopROOmL9K1z98yS+ix+n5jiaqsL2cu+SmwvgyDVw7u2d2qQdG2QECH1OHM8RbKUXCJNgZBZc7w7YnWWfEseqE/5YES/ACqRSPplG85uJLrY+mwpYFp2vtb70HHxq0Kg9MUyDnrJ karlost@wlan-180-131.mxp.redhat.com"
 home = "/home/admin/"
 shell = "/usr/bin/bash"
 groups = ["users", "wheel"]
