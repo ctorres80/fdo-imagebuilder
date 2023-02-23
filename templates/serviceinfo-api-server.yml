@@ -66,7 +66,7 @@ service_info:
     - --zone=public
     - --add-service=cockpit
     - --add-service=pmcd
-    - --add-service=pmcdproxy
+    - --add-service=pmproxy
   - command: firewall-cmd
     args:
     - --reload
