@@ -22,7 +22,7 @@
         sockets: "{{ sockets }}"
         memory: "{{ ram }}"
         vmid: "{{ item.vmid }}"
-        virtio: '{"virtio0":"rbd:100,format=raw", "virtio1":"rbd:200,format=raw"}'
+        virtio: '{"virtio0":"rbd:50,format=raw", "virtio1":"rbd:200,format=raw"}'
         net:
           net0: 'virtio,bridge=vmbr0,rate=200'
         state: absent
