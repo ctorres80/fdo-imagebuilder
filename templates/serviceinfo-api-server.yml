@@ -58,7 +58,6 @@ service_info:
     - pmlogger.service
     - pmcd.service
     - cockpit.socket
-    - redis.service
   - command: firewall-cmd
     args:
     - --permanent
