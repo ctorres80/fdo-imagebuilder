@@ -202,7 +202,6 @@
               - cockpit-composer
               - bash-completion
               - cockpit-pcp
-              - redis
               - cockpit-podman
             state: latest
         - name: Restart services fdo-owner-onboarding-server, fdo-serviceinfo-api-server
@@ -213,7 +212,6 @@
           loop:
             - pmlogger.service
             - pmproxy.service
-            - grafana-server
         - name: Enable Cockpit/Composer/Firewalld/Apache
           ansible.builtin.systemd:
             state: started
