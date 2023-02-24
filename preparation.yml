@@ -204,8 +204,6 @@
               - cockpit-pcp
               - redis
               - cockpit-podman
-              - grafana
-              - grafana-pcp
             state: latest
         - name: Restart services fdo-owner-onboarding-server, fdo-serviceinfo-api-server
           service:

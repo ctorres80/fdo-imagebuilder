@@ -58,7 +58,6 @@ service_info:
     - pmlogger.service
     - pmcd.service
     - cockpit.socket
-    - pmproxy.service
     - redis.service
   - command: firewall-cmd
     args:
@@ -66,7 +65,6 @@ service_info:
     - --zone=public
     - --add-service=cockpit
     - --add-service=pmcd
-    - --add-service=pmproxy
   - command: firewall-cmd
     args:
     - --reload
