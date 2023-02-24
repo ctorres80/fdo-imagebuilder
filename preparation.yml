@@ -204,14 +204,6 @@
               - cockpit-pcp
               - cockpit-podman
             state: latest
-        - name: Restart services fdo-owner-onboarding-server, fdo-serviceinfo-api-server
-          service:
-            name: "{{ item }}"
-            enabled: yes
-            state: restarted
-          loop:
-            - pmlogger.service
-            - pmproxy.service
         - name: Enable Cockpit/Composer/Firewalld/Apache
           ansible.builtin.systemd:
             state: started
