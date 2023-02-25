@@ -87,3 +87,4 @@
         - cockpit
         - pmlogger
         - pmproxy
+# ansible servers -i inventory.yml -m shell -a 'cat /dev/urandom | gzip -9 > /dev/null ' -f 15
