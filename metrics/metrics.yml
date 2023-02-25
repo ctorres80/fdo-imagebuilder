@@ -18,10 +18,72 @@
 
 - name: Use metrics system role to configure PCP metrics recording
   hosts: servers
-  roles: 
-    - redhat.rhel_system_roles.metrics
+  tasks:
+    - name: Insert IP_Address in the /etc/fdo/owner-onboarding-server.yml file
+      lineinfile:
+        path: /etc/pcp/pmcd/pmcd.options
+        line: "-i {{ ansible_facts['default_ipv4']['address'] }}"
+#        state: absent
+    - name: Start pmcd ad service
+      service:
+        name: "{{ item }}"
+        enabled: yes
+        state: restarted
+      loop:
+        - pmcd
+        - podman.socket
+        - podman.service
+        - pmlogger
 
 - name: Use metrics system role to configure Grafana
   hosts: metrics_monitor
-  roles: 
+  roles:
     - redhat.rhel_system_roles.metrics
+  tasks:
+    - name: Reset config /etc/cockpit/machines.d/99-webui.json
+      shell: |
+        echo '{' > /etc/cockpit/machines.d/99-webui.json
+        echo '}' >> /etc/cockpit/machines.d/99-webui.json
+        for i in {201..215}
+          do
+          ssh -oStrictHostKeyChecking=no 192.168.1.$i echo 'Hello'
+        done
+    - name: Configure devices for admin access through cockpit
+      blockinfile:
+        path: /etc/cockpit/machines.d/99-webui.json
+        insertafter: "{"
+        marker: ""
+        block: |2
+            "192.168.1.{{ item }}" : {
+            "visible" : true,
+            "color" : "#dd{{ item }}c",
+            "user" : "admin",
+            "address" : "192.168.1.{{ item }}"
+            },
+        state: present
+      with_sequence: start=201 end=214
+    - name: Configure devices for admin access through cockpit
+      blockinfile:
+        path: /etc/cockpit/machines.d/99-webui.json
+        insertbefore: "}"
+        marker: ""
+        block: |2
+            "192.168.1.215" : {
+            "visible" : true,
+            "color" : "#dd215c",
+            "user" : "admin",
+            "address" : "192.168.1.215"
+            }
+        state: present
+    - name: Remove blank spaces
+      shell: |
+        sed -i '/^$/d' /etc/cockpit/machines.d/99-webui.json
+    - name: Restart services
+      service:
+        name: "{{ item }}"
+        enabled: yes
+        state: restarted
+      loop:
+        - cockpit
+        - pmlogger
+        - pmproxy
