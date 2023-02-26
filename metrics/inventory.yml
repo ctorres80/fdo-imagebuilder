@@ -17,8 +17,6 @@ all:
         device-store-213:
         device-store-214:
         device-store-215:
-        manufacturing:
-        rendezvous:
     metrics_monitor:
       hosts:
         owner:
