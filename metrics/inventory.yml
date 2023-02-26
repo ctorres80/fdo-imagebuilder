@@ -1,22 +1,5 @@
-all:
-  children:
-    servers:
-      hosts:
-        device-store-201:
-        device-store-202:
-        device-store-203:
-        device-store-204:
-        device-store-205:
-        device-store-206:
-        device-store-207:
-        device-store-208:
-        device-store-209:
-        device-store-210:
-        device-store-211:
-        device-store-212:
-        device-store-213:
-        device-store-214:
-        device-store-215:
-    metrics_monitor:
-      hosts:
-        owner:
+[servers]
+device-store-[201:230]
+ 
+[metrics_monitor]
+owner

@@ -22,7 +22,7 @@
         sockets: "{{ sockets }}"
         memory: "{{ ram }}"
         vmid: "{{ item.vmid }}"
-        virtio: '{"virtio0":"rbd:50,format=raw"}'
+        virtio: '{"virtio0":"rbd:12,format=raw"}'
         ide: '{"ide0":"cephfs:iso/rhel-for-edge-fdo.iso,media=cdrom"}'
         net:
           net0: 'virtio,bridge=vmbr0,rate=200'

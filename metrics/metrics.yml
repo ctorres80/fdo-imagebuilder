@@ -44,7 +44,7 @@
       shell: |
         echo '{' > /etc/cockpit/machines.d/99-webui.json
         echo '}' >> /etc/cockpit/machines.d/99-webui.json
-        for i in {201..215}
+        for i in {201..230}
           do
           ssh -oStrictHostKeyChecking=no 192.168.1.$i echo 'Hello'
         done
@@ -61,18 +61,18 @@
             "address" : "192.168.1.{{ item }}"
             },
         state: present
-      with_sequence: start=201 end=214
+      with_sequence: start=201 end=229
     - name: Configure devices for admin access through cockpit
       blockinfile:
         path: /etc/cockpit/machines.d/99-webui.json
         insertbefore: "}"
         marker: ""
         block: |2
-            "192.168.1.215" : {
+            "192.168.1.230" : {
             "visible" : true,
-            "color" : "#dd215c",
+            "color" : "#dd230c",
             "user" : "admin",
-            "address" : "192.168.1.215"
+            "address" : "192.168.1.230"
             }
         state: present
     - name: Remove blank spaces
@@ -87,6 +87,6 @@
         - cockpit
         - pmlogger
         - pmproxy
-# for i in {201..215}; do ssh -oStrictHostKeyChecking=no 192.168.1.$i echo 'Hello'; done
-# ansible servers -i inventory.yml -m shell -a 'cat /dev/urandom | gzip -9 > /dev/null ' -f 15
+# for i in {201..230}; do ssh -oStrictHostKeyChecking=no 192.168.1.$i echo 'Hello'; done
+# ansible servers -i inventory.yml -m shell -a 'cat /dev/urandom | gzip -9 > /dev/null ' -f 30
 # ansible devices -m command -a 'journalctl -u fdo-client-linuxapp.service' -i inventory.yml

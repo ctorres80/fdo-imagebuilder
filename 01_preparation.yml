@@ -1,0 +1,478 @@
+- name: Automate FDO manufacturing, rendezvous and owner deployment
+  hosts: management
+  become: true
+  vars_files:
+    - ./vars/hosts.yml
+  tasks:
+    - name: Remove /etc/machine-id file
+      file:
+        path: /etc/machine-id
+        state: absent
+    - name: Regenerate /etc/machine-id file and unregister the systems
+      shell: |
+        systemd-machine-id-setup
+#      subscription-manager remove --all
+#        subscription-manager unregister
+      ignore_errors: true
+
+    - name: Register to Red Hat portal and auto-subscribe to available content.
+      redhat_subscription:
+        state: present
+        username: "{{ username }}"
+        password: "{{ password | b64decode }}"
+        auto_attach: true
+      ignore_errors: true
+    - name: Deploy manufacturing server
+      block:
+        - name: Install fdo-admin-cli, fdo-manufacturing-server and utilities
+          dnf:
+            name:
+              - fdo-admin-cli
+              - fdo-manufacturing-server
+              - rhel-system-roles
+              - vim
+              - tar
+            state: latest
+        - name: Create a directores etc/fdo/keys /etc/fdo/stores/manufacturer_keys /etc/fdo/stores/manufacturing_sessions /etc/fdo/stores/owner_vouchers if they do not exist
+          file:
+            path: "{{ item }}"
+            state: directory
+            mode: '0755'
+          loop:
+            - /etc/fdo/keys
+            - /etc/fdo/stores/manufacturer_keys
+            - /etc/fdo/stores/manufacturing_sessions
+            - /etc/fdo/stores/owner_vouchers
+        - name: Create certificates if they don't exist
+          shell: |
+            certs_exist=`ls /etc/fdo/keys/ | wc -l`
+            if [ $certs_exist -lt 8 ]
+            then
+              for i in manufacturer owner device-ca diun
+                do
+                  fdo-admin-tool generate-key-and-cert --destination-dir /etc/fdo/keys $i
+              done
+            fi
+        - name: Copy file /usr/share/doc/fdo/manufacturing-server.yml to /etc/fdo/manufacturing-server.yml
+          copy:
+            src: /usr/share/doc/fdo/manufacturing-server.yml
+            dest: /etc/fdo/manufacturing-server.yml
+        - name: enable ports 8080/tcp for fdo-manufacturing services
+          include_role:
+            name: redhat.rhel_system_roles.firewall
+          vars:
+            firewall:
+              - port: 8080/tcp
+                permanent: yes
+                state: enabled
+        - name: Prepare configuration file for "{{ inventory_hostname }}"
+          vars:
+            config_paths:
+              - default_path: '\/path\/to\/sessions'
+                new_path: /etc/fdo/stores/manufacturing_sessions
+              - default_path: '\/path\/to\/ownership_vouchers'
+                new_path: /etc/fdo/stores/owner_vouchers
+              - default_path: '\/path\/to\/keys'
+                new_path: /etc/fdo/keys
+              - default_path: 'fdo\.example\.com'
+                new_path: "{{ rendezvous_dns }}"
+              - default_path: ' 127\.0\.0\.1'
+                new_path: " {{ rendezvous_ip }}"
+              - default_path: ' 8084'
+                new_path: ' 8082'
+              - default_path: ' SECP256R1'
+                new_path: ' SECP384R1'
+          replace:
+            path: /etc/fdo/manufacturing-server.yml
+            regexp:  '(\.*){{ item.default_path }}(\.*)'
+            replace: '\1{{ item.new_path | string}}\2'
+          loop: "{{ config_paths }}"
+        - name: Restart service fdo-manufacturing-server
+          service:
+            name: fdo-manufacturing-server
+            enabled: yes
+            state: restarted
+        - name: Check ss -tlnp output for fdo-manufacturing-server services
+          shell: |
+            ss -tlnp
+          register: results
+        - name: Display fdo-manufacturing-server services
+          debug:
+            var: results.stdout_lines
+      when: inventory_hostname == "manufacturing"
+    - name: Deploy rendezvous server
+      block:
+        - name: Install fdo-rendezvous-server and utilities
+          dnf:
+            name:
+              - fdo-rendezvous-server
+              - rhel-system-roles
+              - vim
+              - tar
+            state: latest
+        - name: Create a directores etc/fdo/keys /etc/fdo/stores/rendezvous_registered /etc/fdo/stores/rendezvous_sessions if they do not exist
+          file:
+            path: "{{ item }}"
+            state: directory
+            mode: '0755'
+          loop:
+            - /etc/fdo/keys
+            - /etc/fdo/stores/rendezvous_registered
+            - /etc/fdo/stores/rendezvous_sessions
+        - name: Copy certificates from manufacturing
+          copy:
+            src: /etc/fdo/keys/manufacturer_cert.pem
+            dest: /etc/fdo/keys/
+        - name: Copy file /usr/share/doc/fdo/rendezvous-server.yml to /etc/fdo/rendezvous-server.yml
+          copy:
+            src: /usr/share/doc/fdo/rendezvous-server.yml
+            dest: /etc/fdo/rendezvous-server.yml
+        - name: enable ports 8082/tcp for fdo-rendezvous services
+          include_role:
+            name: redhat.rhel_system_roles.firewall
+          vars:
+            firewall:
+              - port: 8082/tcp
+                permanent: yes
+                state: enabled
+        - name: Remove not necessary lines in /etc/fdo/rendezvous-server.yml
+          lineinfile:
+            path: /etc/fdo/rendezvous-server.yml
+            regexp: '{{ item }}'
+            state: absent
+          loop:
+            - "^session_store_driver"
+            - "^session_store_config"
+            - "^trusted_device_keys_path"
+        - name: Insert block in config file /etc/fdo/rendezvous-server.yml
+          blockinfile:
+            path: /etc/fdo/rendezvous-server.yml
+            insertbefore: "trusted_manufacturer_keys_path"
+            block: |
+              session_store_driver:
+                Directory:
+                  path: /etc/fdo/stores/rendezvous_sessions
+              max_wait_seconds: ~
+        - name: Remove blank lines in /etc/fdo/owner-onboarding-server.yml
+          lineinfile :
+            path: /etc/fdo/rendezvous-server.yml
+            state: absent
+            regexp: 'ANSIBLE'
+        - name: Prepare configuration file for "{{ inventory_hostname }}"
+          vars:
+            config_paths:
+              - default_path: '\/path\/to\/rendezvous_registered\/'
+                new_path: /etc/fdo/stores/rendezvous_registered
+              - default_path: '\/path\/to\/ownership_vouchers'
+                new_path: /etc/fdo/stores/owner_vouchers
+              - default_path: '\/path\/to\/keys'
+                new_path: /etc/fdo/keys
+              - default_path: ' 0.0.0.0:8082'
+                new_path: ' "0.0.0.0:8082"'
+          replace:
+            path: /etc/fdo/rendezvous-server.yml
+            regexp:  '(\.*){{ item.default_path }}(\.*)'
+            replace: '\1{{ item.new_path | string}}\2'
+          loop: "{{ config_paths }}"
+        - name: Restart service fdo-rendezvous-server
+          service:
+            name: fdo-rendezvous-server
+            enabled: yes
+            state: restarted
+        - name: Check ss -tlnp output for fdo-rendezvous-server services
+          shell: |
+            ss -tlnp
+          register: results
+        - name: Display fdo-rendezvous-server services
+          debug:
+            var: results.stdout_lines
+      when: inventory_hostname == "rendezvous"
+    - name: Deploy owner server packages
+      block:
+        - name: Install fdo-owner-server and utilities
+          dnf:
+            name:
+              - fdo-owner-cli
+              - fdo-owner-onboarding-server
+              - vim
+              - tar
+              - podman
+              - osbuild-composer
+              - composer-cli
+              - cockpit-composer
+              - bash-completion
+              - cockpit-pcp
+              - cockpit-podman
+            state: latest
+        - name: Enable Cockpit/Composer/Firewalld/Apache
+          ansible.builtin.systemd:
+            state: started
+            enabled: true
+            name: "{{ item }}"
+          loop:
+            - osbuild-composer.socket
+            - cockpit.socket
+        - name: Create a directores etc/fdo/keys /etc/fdo/stores/owner_vouchers /etc/fdo/stores/rendezvous_sessions if they do not exist
+          file:
+            path: "{{ item }}"
+            state: directory
+            mode: '0755'
+          loop:
+            - "/etc/fdo/keys"
+            - "/etc/fdo/stores/owner_vouchers"
+            - "/etc/fdo/stores/owner_onboarding_sessions"
+        - name: Copy certificates device_ca_cert.pem, owner_key.der and owner_cert.pem from manufacturing
+          copy:
+            src: "{{ item }}"
+            dest: /etc/fdo/keys/
+          loop:
+            - "/etc/fdo/keys/device_ca_cert.pem"
+            - "/etc/fdo/keys/owner_key.der"
+            - "/etc/fdo/keys/owner_cert.pem"
+        - name: Copy file /usr/share/doc/fdo/owner-onboarding-server.yml to /etc/fdo/owner-onboarding-server.yml
+          copy:
+            src: /usr/share/doc/fdo/owner-onboarding-server.yml
+            dest: /etc/fdo/owner-onboarding-server.yml
+        - name: enable ports 8081-8083/tcp for fdo-owner services
+          include_role:
+            name: redhat.rhel_system_roles.firewall
+          vars:
+            firewall:
+              - port: 8080-8083/tcp
+                permanent: true
+                state: enabled
+              - service: cockpit
+                permanent: true
+                state: enabled
+              - service: grafana
+                permanent: true
+                state: enabled
+              - service: pmproxy
+                permanent: true
+                state: enabled
+              - port: 8090/tcp
+                permanent: true
+                state: enabled
+        - name: Remove not necessary lines
+          lineinfile:
+            path: /etc/fdo/owner-onboarding-server.yml
+            regexp: '{{ item }}'
+            state: absent
+          loop:
+            - "service_info_api_authentication"
+        - name: Insert block in config file /etc/fdo/rendezvous-server.yml
+          blockinfile:
+            path: /etc/fdo/owner-onboarding-server.yml
+            insertafter: "service_info_api_url"
+            block: |
+              service_info_api_authentication:
+                BearerToken:
+                  token: Kpt5P/5flBkaiNSvDYS3cEdBQXJn2Zv9n1D50431/lo=
+        - name: Prepare configuration file for "{{ inventory_hostname }}"
+          vars:
+            config_paths:
+              - default_path: '\/path\/to\/sessions\/'
+                new_path: /etc/fdo/stores/owner_onboarding_sessions
+              - default_path: '\/path\/to\/ownership_vouchers\/'
+                new_path: /etc/fdo/stores/owner_vouchers
+              - default_path: '\/path\/to\/keys'
+                new_path: /etc/fdo/keys
+              - default_path: 'fdo\.example\.com'
+                new_path: "{{ ansible_facts['fqdn'] }}"
+              - default_path: ':8089'
+                new_path: ':8083'
+              - default_path: 'report_to_rendezvous_endpoint_enabled: false'
+                new_path: 'report_to_rendezvous_endpoint_enabled: true'
+          replace:
+            path: /etc/fdo/owner-onboarding-server.yml
+            regexp:  '(\.*){{ item.default_path }}(\.*)'
+            replace: '\1{{ item.new_path | string}}\2'
+          loop: "{{ config_paths }}"
+        - name: Insert IP_Address in the /etc/fdo/owner-onboarding-server.yml file
+          lineinfile:
+            path: /etc/fdo/owner-onboarding-server.yml
+            line: "    - ip_address: {{ ansible_facts['default_ipv4']['address'] }}"
+            insertbefore: "dns_name:"
+        - name: Remove blank lines in /etc/fdo/owner-onboarding-server.yml
+          lineinfile :
+            path: /etc/fdo/owner-onboarding-server.yml
+            state: absent
+            regexp: "{{ item }}"
+          loop:
+            - "ANSIBLE"
+            - "dns_name:"
+        - name: Display fdo-owner-onboarding-server and fdo-serviceinfo-api-server services
+          debug:
+            var: results.stdout_lines
+        - name: Download /etc/fdo/serviceinfo-api-server.yml
+          vars:
+            files_to_download:
+              - source: 'https://raw.githubusercontent.com/ctorres80/fdo-imagebuilder/main/templates/serviceinfo-api-server.yml'
+                destination: "{{ api_config_path_owner }}"
+              - source: 'https://github.com/ctorres80/fdo-imagebuilder/raw/main/templates/fdo-configs.tar.gz'
+                destination: /etc
+          get_url:
+            url: "{{ item.source }}"
+            dest: "{{ item.destination }}"
+            mode: '0755'
+          loop: "{{ files_to_download }}"
+        - name: Extract /etc/fdo-configs.tar.gz
+          unarchive:
+            remote_src: yes
+            src: /etc/fdo-configs.tar.gz
+            dest: /etc
+        - name: fetch local public ssh keys
+          shell: cat ~/.ssh/id_rsa.pub
+          register: ssh_keys
+        - name: fetch tokens
+          shell: grep token /etc/fdo/owner-onboarding-server.yml  | awk '{print $2}'
+          register: token_key
+        - name: Prepare configuration file for "{{ inventory_hostname }}"
+          vars:
+            text_to_replace:
+              - source: '<PATH FILES>'
+                destination: "{{ directory_config_api_owner }}"
+              - source: '<RED HAT USER>'
+                destination: "{{ username|b64encode }}"
+              - source: '<RED HAT PASSWORD>'
+                destination: "{{ password }}"
+              - source: '<SSH PUB KEY>'
+                destination: "{{ ssh_keys.stdout }}"
+              - source: '<SERVICE TOKEN>'
+                destination: "{{ token_key.stdout }}"
+              - source: '<ADMIN TOKEN>'
+                destination: "{{ token_key.stdout }}"
+          replace:
+            path: "{{ api_config_path_owner }}"
+            regexp:  "{{ item.source }}"
+            replace: "{{ item.destination }}"
+          loop: "{{ text_to_replace }}"
+        - name: Remove blank lines in {{ api_config_path_owner }}
+          lineinfile :
+            path: "{{ api_config_path_owner }}"
+            state: absent
+            regexp: 'ANSIBLE'
+        - name: Restart services fdo-owner-onboarding-server, fdo-serviceinfo-api-server
+          service:
+            name: "{{ item }}"
+            enabled: yes
+            state: restarted
+          loop:
+            - fdo-owner-onboarding-server
+            - fdo-serviceinfo-api-server
+        - name: Check ss -tlnp for fdo-serviceinfo-api-server
+          shell: |
+            ss -tlnp
+          register: results
+        - name: Display fdo-serviceinfo-api-server
+          debug:
+            var: results.stdout_lines
+        - name: Create blueprint file in /tmp
+          template  :
+            src: "{{ item.bp_template }}"
+            dest: "{{ item.bp_file }}"
+          loop: "{{ toml_files }}"
+        - name: Create blueprint from shell command
+          shell: |
+            composer-cli blueprints push "{{ item.bp_file }}"
+          loop: "{{ toml_files }}"
+        - name: Compose composer-cli start-ostree "{{ edge_commit_bp }}" edge-commit
+          shell: |
+            composer-cli compose start-ostree "{{ edge_commit_bp }}" edge-commit
+          register: _create_instances
+        - name: Setting host facts using complex arguments
+          ansible.builtin.set_fact:
+            composeID: "{{ _create_instances.stdout[8:44] }}"
+        - name: Waiting for compose
+          shell: |
+            results=`composer-cli compose info {{ composeID }} | head -1 | awk -F " " '{print $2}'`
+            while [ $results == 'RUNNING' ]
+              do
+                sleep 30
+                results=`composer-cli compose info {{ composeID }} | head -1 | awk -F " " '{print $2}'`
+                echo "WAITING"
+            done
+          register: _create_instances
+          async: 3600  # Maximum runtime in seconds. Adjust as needed.
+          poll: 0  # Fire and continue (never poll)
+        - name: Waiting for compose {{ composeID }} to be completed
+          async_status:
+            jid: "{{  _create_instances.ansible_job_id }}"
+          register: _jobs
+          until: _jobs.finished
+          delay: 30  # Check every 30 seconds. Adjust as you like.
+          retries: 360  # Retry up to 10 times. Adjust as needed.
+        - name: Check if blueprint directory exists
+          ansible.builtin.stat:
+            path: "/tmp/{{ edge_commit_bp }}"
+          register: stat_output
+        - name: Initialize rpm-ostree repo for blueprint
+          when: not stat_output.stat.exists
+          block:
+            - name: Create blueprint directory
+              ansible.builtin.file:
+                path: "/tmp/{{ edge_commit_bp }}"
+                mode: 0755
+                state: directory
+        - name: composer-cli compose image getting tar file
+          ansible.builtin.command: 'composer-cli compose image {{ composeID }}'
+          args:
+            chdir: "/tmp/{{ edge_commit_bp }}"
+        - name: Create config files for /tmp/nginx.conf /tmp/Dockerfile
+          template  :
+            src: "{{ item.conf_template }}"
+            dest: "{{ item.conf_file }}"
+          loop: "{{ docker_files }}"
+        - name: Build a container image with podman buil from previous tar file
+          ansible.builtin.command: 'podman build -t {{ edge_commit_bp }}:{{ composeID }} --build-arg commit={{ edge_commit_bp }}/{{ composeID }}-commit.tar .'
+          args:
+            chdir: "/tmp/"
+          register: _create_instances
+          async: 3600  # Maximum runtime in seconds. Adjust as needed.
+          poll: 0  # Fire and continue (never poll)
+        - name: Waiting for podman build
+          async_status:
+            jid: "{{  _create_instances.ansible_job_id }}"
+          register: _jobs
+          until: _jobs.finished
+          delay: 10  # Check every 10 seconds. Adjust as you like.
+          retries: 360  # Retry up to 10 times. Adjust as needed.
+        - name: Tagging container image
+          ansible.builtin.command: 'podman tag {{ edge_commit_bp }}:{{ composeID }} {{ edge_commit_bp }}:latest'
+        - name: Run the container
+          ansible.builtin.command: 'podman run --name {{ edge_commit_bp }}-latest -d -p  {{ repo_http_extport }}:{{ repo_http_port }} {{ edge_commit_bp }}:{{ composeID }}'
+        - name: Compose composer-cli start-ostree "{{ edge_commit_bp }}" edge-commit
+          shell: |
+            composer-cli compose start-ostree "{{ edge_commit_bp_fdo }}" edge-simplified-installer --ref rhel/{{ baserelease }}/{{ basearch }}/edge --url http://{{ ansible_facts['default_ipv4']['address'] }}:{{ repo_http_extport }}/repo/
+          register: _create_instances
+        - name: Setting host facts using complex arguments
+          ansible.builtin.set_fact:
+            composeID: "{{ _create_instances.stdout[8:44] }}"
+        - name: Waiting for compose
+          shell: |
+            results=`composer-cli compose info {{ composeID }} | head -1 | awk -F " " '{print $2}'`
+            while [ $results == 'RUNNING' ]
+              do
+                sleep 30
+                results=`composer-cli compose info {{ composeID }} | head -1 | awk -F " " '{print $2}'`
+                echo "WAITING"
+            done
+          register: _create_instances
+          async: 3600  # Maximum runtime in seconds. Adjust as needed.
+          poll: 0  # Fire and continue (never poll)
+        - name: Waiting for compose {{ composeID }} to be completed
+          async_status:
+            jid: "{{  _create_instances.ansible_job_id }}"
+          register: _jobs
+          until: _jobs.finished
+          delay: 30  # Check every 30 seconds. Adjust as you like.
+          retries: 360  # Retry up to 10 times. Adjust as needed.
+        - name: Build a container iso image
+          ansible.builtin.command: 'composer-cli compose image {{ composeID }}'
+          args:
+            chdir: "/tmp/"
+        - name: scp iso image in the hypervisor shared storage
+          ansible.builtin.command: 'scp {{ composeID }}-simplified-installer.iso root@milano:/mnt/pve/cephfs/template/iso/rhel-for-edge-fdo.iso'
+          args:
+            chdir: "/tmp/"
+      when: inventory_hostname == "owner"
