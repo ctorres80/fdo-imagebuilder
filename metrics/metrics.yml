@@ -88,3 +88,5 @@
         - pmlogger
         - pmproxy
 # ansible servers -i inventory.yml -m shell -a 'cat /dev/urandom | gzip -9 > /dev/null ' -f 15
+# for i in {201..215}; do ssh -oStrictHostKeyChecking=no 192.168.1.$i echo 'Hello'; done
+# ansible devices -m command -a 'journalctl -u fdo-client-linuxapp.service' -i inventory.yml
